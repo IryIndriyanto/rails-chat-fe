@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 
+
+const apiUrl:string = import.meta.env.VITE_API_URL;
+const wsUrl:string = import.meta.env.VITE_WS_URL;
+
 interface Message {
   id: number;
   body: string;
 }
 
-const ws = new WebSocket("wss://fierce-bayou-91868-336df49d6253.herokuapp.com/cable");
+const ws = new WebSocket(wsUrl);
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [guid, setGuid] = useState("");
@@ -41,7 +45,7 @@ function App() {
   }, []);
 
   const fetchMessages = async () => {
-    const response = await fetch("https://fierce-bayou-91868-336df49d6253.herokuapp.com/messages");
+    const response = await fetch(`${apiUrl}/messages`);
     const data = await response.json();
     setMessages(data);
   };
@@ -51,7 +55,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   const body = (e.target as HTMLFormElement).message.value;
   (e.target as HTMLFormElement).message.value = "";
 
-  await fetch("https://fierce-bayou-91868-336df49d6253.herokuapp.com/messages", {
+  await fetch(`${apiUrl}/messages`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
