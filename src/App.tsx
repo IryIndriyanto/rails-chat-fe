@@ -1,5 +1,5 @@
 import "./App.css";
-import { Routes, Route, Outlet, Link } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { Toaster } from "./components/ui/toaster";
 import ChatHome from "./components/chatroom-selector";
 import ChatRoom from "./components/chatroom";
