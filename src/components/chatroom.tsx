@@ -1,23 +1,55 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SetStateAction, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
 const apiUrl: string = import.meta.env.VITE_API_URL;
 const wsUrl: string = import.meta.env.VITE_WS_URL;
 
+interface User {
+  id: number;
+  name: string;
+}
 interface Message {
   id: number;
   body: string;
   created_at: string;
+  user: User;
 }
 
+type Chatroom = {
+  id: string;
+  name: string;
+  messages: Message[];
+};
+
 const ws = new WebSocket(wsUrl);
-export default function Chatroom() {
+export default function ChatRoom() {
+  const { id } = useParams();
+  const [roomDetails, setRoomDetails] = useState<Chatroom | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [guid, setGuid] = useState("");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const messagesContainer = document.getElementById("messages");
+
+  useEffect(() => {
+    // Fetch the chatroom details using the ID
+    const fetchRoomDetails = async () => {
+      const response = await fetch(`${apiUrl}/chatrooms/${id}`);
+      const data = await response.json();
+      setRoomDetails(data);
+      setMessagesAndScrollDown(data.messages);
+    };
+
+    fetchRoomDetails();
+  }, [id]);
+
+  const setMessagesAndScrollDown = (data: SetStateAction<Message[]>) => {
+    setMessages(data);
+    resetScroll();
+  };
 
   ws.onopen = () => {
     console.log("connected to message server");
@@ -44,14 +76,10 @@ export default function Chatroom() {
       return;
 
     const message = data.message;
+    console.log(message);
 
     setMessages((prevMessages) => [...prevMessages, message]);
   };
-
-  useEffect(() => {
-    fetchMessages();
-    resetScroll();
-  }, []);
 
   useEffect(() => {
     if (!isFirstLoad) {
@@ -61,12 +89,6 @@ export default function Chatroom() {
     }
   }, [messages]);
 
-  const fetchMessages = async () => {
-    const response = await fetch(`${apiUrl}/messages`);
-    const data = await response.json();
-    setMessagesAndScrollDown(data);
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsFirstLoad(false);
@@ -74,18 +96,20 @@ export default function Chatroom() {
     const body = (e.target as HTMLFormElement).message.value;
     (e.target as HTMLFormElement).message.value = "";
 
+    const userId = 2;
+    const chatroomId = Number(id);
+
     await fetch(`${apiUrl}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({
+        body,
+        user_id: userId,
+        chatroom_id: chatroomId,
+      }),
     });
-  };
-
-  const setMessagesAndScrollDown = (data: SetStateAction<Message[]>) => {
-    setMessages(data);
-    resetScroll();
   };
 
   const resetScroll = () => {
@@ -127,16 +151,11 @@ export default function Chatroom() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col w-full h-screen">
       <header className="bg-primary text-primary-foreground py-4 px-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Avatar className="w-8 h-8 border">
-            <AvatarImage src="/placeholder-user.jpg" alt="Image" />
-            <AvatarFallback>JD</AvatarFallback>
-          </Avatar>
           <div>
-            <div className="font-medium">Chatroom</div>
-            <div className="text-sm text-muted-foreground">5 online</div>
+            <div className="font-medium">{roomDetails?.name}</div>
           </div>
         </div>
       </header>
@@ -150,12 +169,12 @@ export default function Chatroom() {
               <Avatar className="w-12 h-12 border">
                 <AvatarImage src="/placeholder-user.jpg" alt="Image" />
                 <AvatarFallback>{`${getAvatarFallback(
-                  "iry in"
+                  message.user.name
                 )}`}</AvatarFallback>
               </Avatar>
               <div className="grid gap-1">
                 <div className="flex items-center gap-2">
-                  <div className="font-medium">{guid}</div>
+                  <div className="font-medium">{message.user.name}</div>
                   <div className="text-xs text-muted-foreground">
                     {formatChatDate(message.created_at)}
                   </div>
