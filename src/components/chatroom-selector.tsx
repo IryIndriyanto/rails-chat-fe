@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 type Chatroom = {
   id: string;
@@ -23,6 +24,7 @@ export default function ChatRoomSelector() {
   const [selectedRoom, setSelectedRoom] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const apiUrl: string = import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
@@ -40,7 +42,7 @@ export default function ChatRoomSelector() {
 
   const handleJoinRoom = () => {
     if (selectedRoom) {
-      const room = chatrooms.find((room) => room.id === selectedRoom);
+      const room = chatrooms.find((room) => room.name === selectedRoom);
       if (room) {
         navigate(`/rails-chat-fe/chatrooms/${room.id}`);
       }
@@ -63,10 +65,7 @@ export default function ChatRoomSelector() {
       return;
     }
 
-    const newRoom: Chatroom = {
-      id: (chatrooms.length + 1).toString(),
-      name: newRoomName.trim(),
-    };
+    setIsLoading(true);
 
     try {
       const response = await fetch(`${apiUrl}/chatrooms`, {
@@ -74,7 +73,7 @@ export default function ChatRoomSelector() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newRoom),
+        body: JSON.stringify({ name: newRoomName.trim() }),
       });
 
       if (!response.ok) {
@@ -82,15 +81,18 @@ export default function ChatRoomSelector() {
       }
 
       // Update chatrooms state after successful API call
-      setChatrooms([...chatrooms, newRoom]);
-      setSelectedRoom(newRoom.id);
+      fetchChatrooms();
+
+      setSelectedRoom(newRoomName.trim());
       setIsCreating(false);
+      setIsLoading(false);
       setNewRoomName("");
 
       toast({
         title: "Success",
-        description: `Room "${newRoom.name}" created successfully!`,
+        description: `Room "${newRoomName}" created successfully!`,
       });
+      setIsLoading(false);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast({
@@ -108,7 +110,9 @@ export default function ChatRoomSelector() {
           <CardTitle className="text-2xl font-bold">
             Join or Create a Chatroom
           </CardTitle>
-          <div className="text-lg">{`👋 Hello, ${sessionStorage.getItem("username")}`}</div>
+          <div className="text-lg">{`👋 Hello, ${sessionStorage.getItem(
+            "username"
+          )}`}</div>
         </CardHeader>
         <CardContent className="space-y-4">
           {!isCreating ? (
@@ -120,7 +124,7 @@ export default function ChatRoomSelector() {
                 </SelectTrigger>
                 <SelectContent>
                   {chatrooms.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>
+                    <SelectItem key={room.id} value={room.name}>
                       {room.name}
                     </SelectItem>
                   ))}
@@ -146,8 +150,16 @@ export default function ChatRoomSelector() {
                   onChange={(e) => setNewRoomName(e.target.value)}
                 />
               </div>
-              <Button className="w-full" onClick={handleCreateRoom}>
-                Create Room
+              <Button
+                className="w-full"
+                onClick={handleCreateRoom}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  "Create Room"
+                )}
               </Button>
               <div className="text-center">
                 <Button variant="link" onClick={() => setIsCreating(false)}>
