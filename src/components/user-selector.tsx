@@ -13,6 +13,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import ServerStatusCard from "./server-status-card";
+import { Loader2 } from "lucide-react";
 
 type User = {
   id: string;
@@ -25,6 +26,7 @@ export default function ChatHome() {
   const [isCreating, setIsCreating] = useState(false);
   const [newUserName, setNewUserName] = useState("");
   const [isOnline, setIsOnline] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const apiUrl: string = import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
@@ -78,6 +80,8 @@ export default function ChatHome() {
       return;
     }
 
+    setIsLoading(true);
+
     try {
       const response = await fetch(`${apiUrl}/users`, {
         method: "POST",
@@ -96,6 +100,7 @@ export default function ChatHome() {
 
       setSelectedUser(newUserName.trim());
       setIsCreating(false);
+      setIsLoading(false);
       setNewUserName("");
 
       toast({
@@ -109,6 +114,7 @@ export default function ChatHome() {
         description: "There was an issue creating the user. Please try again.",
         variant: "destructive",
       });
+      setIsLoading(false);
     }
   };
 
@@ -156,8 +162,8 @@ export default function ChatHome() {
                   onChange={(e) => setNewUserName(e.target.value)}
                 />
               </div>
-              <Button className="w-full" onClick={handleCreateUser}>
-                Create User
+              <Button className="w-full" onClick={handleCreateUser} disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create User"}
               </Button>
               <div className="text-center">
                 <Button variant="link" onClick={() => setIsCreating(false)}>
