@@ -13,89 +13,86 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
-type Chatroom = {
+type User = {
   id: string;
   name: string;
 };
 
-export default function ChatRoomSelector() {
-  const [chatrooms, setChatrooms] = useState<Chatroom[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<string>("");
+export default function ChatHome() {
+  const [Users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
-  const [newRoomName, setNewRoomName] = useState("");
+  const [newUserName, setNewUserName] = useState("");
 
   const apiUrl: string = import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchChatrooms();
+    fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchChatrooms = async () => {
-    const response = await fetch(`${apiUrl}/chatrooms`);
+  const fetchUsers = async () => {
+    const response = await fetch(`${apiUrl}/users`);
     const data = await response.json();
-    setChatrooms(data);
+    setUsers(data);
   };
 
-  const handleJoinRoom = () => {
-    if (selectedRoom) {
-      const room = chatrooms.find((room) => room.id === selectedRoom);
-      if (room) {
-        navigate(`/rails-chat-fe/chatrooms/${room.id}`);
+  const handleSelectUser = () => {
+    if (selectedUser) {
+      const user = Users.find((user) => user.name === selectedUser);
+      if (user) {
+        sessionStorage.setItem("user", user.name);
+        navigate(`join-room`);
       }
     } else {
       toast({
         title: "Error",
-        description: "Please select a room to join",
+        description: "Please select a user to join",
         variant: "destructive",
       });
     }
   };
 
-  const handleCreateRoom = async () => {
-    if (newRoomName.trim() === "") {
+  const handleCreateUser = async () => {
+    if (newUserName.trim() === "") {
       toast({
         title: "Error",
-        description: "Room name cannot be empty",
+        description: "User name cannot be empty",
         variant: "destructive",
       });
       return;
     }
 
-    const newRoom: Chatroom = {
-      id: (chatrooms.length + 1).toString(),
-      name: newRoomName.trim(),
-    };
-
     try {
-      const response = await fetch(`${apiUrl}/chatrooms`, {
+      const response = await fetch(`${apiUrl}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newRoom),
+        body: JSON.stringify({ name: newUserName.trim() }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create room");
+        throw new Error("Failed to create user");
       }
 
-      // Update chatrooms state after successful API call
-      setChatrooms([...chatrooms, newRoom]);
-      setSelectedRoom(newRoom.id);
+      // Update Users state after successful API call
+      fetchUsers()
+
+      setSelectedUser(newUserName.trim());
       setIsCreating(false);
-      setNewRoomName("");
+      setNewUserName("");
 
       toast({
         title: "Success",
-        description: `Room "${newRoom.name}" created successfully!`,
+        description: `User "${newUserName}" created successfully!`,
       });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast({
         title: "Error",
-        description: "There was an issue creating the room. Please try again.",
+        description: "There was an issue creating the user. Please try again.",
         variant: "destructive",
       });
     }
@@ -106,51 +103,51 @@ export default function ChatRoomSelector() {
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">
-            Join or Create a Chatroom
+            Select or Create a Chatuser
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {!isCreating ? (
             <div className="space-y-4">
-              <Label htmlFor="room-select">Select a Chatroom</Label>
-              <Select value={selectedRoom} onValueChange={setSelectedRoom}>
-                <SelectTrigger id="room-select">
-                  <SelectValue placeholder="Choose a room" />
+              <Label htmlFor="user-select">Select a User</Label>
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
+                <SelectTrigger id="user-select">
+                  <SelectValue placeholder="Choose a user" />
                 </SelectTrigger>
                 <SelectContent>
-                  {chatrooms.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>
-                      {room.name}
+                  {Users.map((user) => (
+                    <SelectItem key={user.id} value={user.name}>
+                      {user.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Button className="w-full" onClick={handleJoinRoom}>
-                Join Room
+              <Button className="w-full" onClick={handleSelectUser}>
+                Select User
               </Button>
               <div className="text-center">
                 <Button variant="link" onClick={() => setIsCreating(true)}>
-                  Or create a new room
+                  Or create a new user
                 </Button>
               </div>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="new-room-name">New Room Name</Label>
+                <Label htmlFor="new-user-name">New User Name</Label>
                 <Input
-                  id="new-room-name"
-                  placeholder="Enter room name"
-                  value={newRoomName}
-                  onChange={(e) => setNewRoomName(e.target.value)}
+                  id="new-user-name"
+                  placeholder="Enter user name"
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
                 />
               </div>
-              <Button className="w-full" onClick={handleCreateRoom}>
-                Create Room
+              <Button className="w-full" onClick={handleCreateUser}>
+                Create User
               </Button>
               <div className="text-center">
                 <Button variant="link" onClick={() => setIsCreating(false)}>
-                  Back to room selection
+                  Back to user selection
                 </Button>
               </div>
             </div>
