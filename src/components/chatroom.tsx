@@ -26,7 +26,6 @@ type Chatroom = {
   messages: Message[];
 };
 
-const ws = new WebSocket(wsUrl);
 export default function ChatRoom() {
   const { id } = useParams();
   const [roomDetails, setRoomDetails] = useState<Chatroom | null>(null);
@@ -36,6 +35,44 @@ export default function ChatRoom() {
   const [currentUserId, setCurrentUserId] = useState("");
   const messagesContainer = document.getElementById("messages");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log("connected to message server");
+      setGuid(Math.random().toString(36).substring(2, 15));
+
+      ws.send(
+        JSON.stringify({
+          command: "subscribe",
+          identifier: JSON.stringify({
+            id: guid,
+            channel: "MessagesChannel",
+          }),
+        })
+      );
+    };
+
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (
+        data.type === "ping" ||
+        data.type === "welcome" ||
+        data.type === "confirm_subscription"
+      )
+        return;
+
+      const message = data.message;
+      console.log(message);
+
+      setMessages((prevMessages) => [...prevMessages, message]);
+
+    };
+    return () => {
+      ws.close();
+    }
+  }, []);
 
   useEffect(() => {
     const userId = sessionStorage.getItem("userId");
@@ -49,7 +86,6 @@ export default function ChatRoom() {
         variant: "destructive",
       });
     }
-    console.log(userId);
 
     // Fetch the chatroom details using the ID
     const fetchRoomDetails = async () => {
@@ -65,36 +101,6 @@ export default function ChatRoom() {
   const setMessagesAndScrollDown = (data: SetStateAction<Message[]>) => {
     setMessages(data);
     resetScroll();
-  };
-
-  ws.onopen = () => {
-    console.log("connected to message server");
-    setGuid(Math.random().toString(36).substring(2, 15));
-
-    ws.send(
-      JSON.stringify({
-        command: "subscribe",
-        identifier: JSON.stringify({
-          id: guid,
-          channel: "MessagesChannel",
-        }),
-      })
-    );
-  };
-
-  ws.onmessage = (e) => {
-    const data = JSON.parse(e.data);
-    if (
-      data.type === "ping" ||
-      data.type === "welcome" ||
-      data.type === "confirm_subscription"
-    )
-      return;
-
-    const message = data.message;
-    console.log(message);
-
-    setMessages((prevMessages) => [...prevMessages, message]);
   };
 
   useEffect(() => {
@@ -115,17 +121,26 @@ export default function ChatRoom() {
     const userId = Number(currentUserId);
     const chatroomId = Number(id);
 
-    await fetch(`${apiUrl}/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        body,
-        user_id: userId,
-        chatroom_id: chatroomId,
-      }),
-    });
+    try {
+      await fetch(`${apiUrl}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          body,
+          user_id: userId,
+          chatroom_id: chatroomId,
+        }),
+      });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const resetScroll = () => {
@@ -190,7 +205,7 @@ export default function ChatRoom() {
               key={message.id}
             >
               <Avatar className="w-12 h-12 border">
-                <AvatarImage src="/placeholder-user.jpg" alt="Image" />
+                <AvatarImage src="placeholder-user.png" alt="Image" />
                 <AvatarFallback>{`${getAvatarFallback(
                   message.user.name
                 )}`}</AvatarFallback>
