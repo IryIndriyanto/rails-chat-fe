@@ -55,7 +55,8 @@ export default function ChatHome() {
     if (selectedUser) {
       const user = Users.find((user) => user.name === selectedUser);
       if (user) {
-        sessionStorage.setItem("user", user.name);
+        sessionStorage.setItem("username", user.name);
+        sessionStorage.setItem("userId", user.id);
         navigate(`join-room`);
       }
     } else {

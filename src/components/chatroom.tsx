@@ -2,8 +2,9 @@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
 import { SetStateAction, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 const apiUrl: string = import.meta.env.VITE_API_URL;
 const wsUrl: string = import.meta.env.VITE_WS_URL;
@@ -32,9 +33,24 @@ export default function ChatRoom() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [guid, setGuid] = useState("");
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState("");
   const messagesContainer = document.getElementById("messages");
+  const navigate = useNavigate();
 
   useEffect(() => {
+    const userId = sessionStorage.getItem("userId");
+    if (userId) {
+      setCurrentUserId(userId);
+    } else {
+      navigate("/rails-chat-fe");
+      toast({
+        title: "Error",
+        description: "Please select a user to join",
+        variant: "destructive",
+      });
+    }
+    console.log(userId);
+
     // Fetch the chatroom details using the ID
     const fetchRoomDetails = async () => {
       const response = await fetch(`${apiUrl}/chatrooms/${id}`);
@@ -96,7 +112,7 @@ export default function ChatRoom() {
     const body = (e.target as HTMLFormElement).message.value;
     (e.target as HTMLFormElement).message.value = "";
 
-    const userId = 2;
+    const userId = Number(currentUserId);
     const chatroomId = Number(id);
 
     await fetch(`${apiUrl}/messages`, {
@@ -165,21 +181,34 @@ export default function ChatRoom() {
           <p>No messages yet</p>
         ) : (
           messages.map((message) => (
-            <div className="flex items-start gap-4" key={message.id}>
+            <div
+              className={
+                message.user.id === Number(currentUserId)
+                  ? "flex items-end flex-row-reverse gap-4"
+                  : "flex items-end gap-4"
+              }
+              key={message.id}
+            >
               <Avatar className="w-12 h-12 border">
                 <AvatarImage src="/placeholder-user.jpg" alt="Image" />
                 <AvatarFallback>{`${getAvatarFallback(
                   message.user.name
                 )}`}</AvatarFallback>
               </Avatar>
-              <div className="grid gap-1">
+              <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <div className="font-medium">{message.user.name}</div>
                   <div className="text-xs text-muted-foreground">
                     {formatChatDate(message.created_at)}
                   </div>
                 </div>
-                <div className="bg-muted rounded-md p-3 text-sm w-fit">
+                <div
+                  className={
+                    message.user.id === Number(currentUserId)
+                      ? "bg-muted rounded-md p-3 text-sm w-fit self-end"
+                      : "bg-muted rounded-md p-3 text-sm w-fit"
+                  }
+                >
                   {message.body}
                 </div>
               </div>

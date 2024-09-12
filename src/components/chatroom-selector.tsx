@@ -108,6 +108,7 @@ export default function ChatRoomSelector() {
           <CardTitle className="text-2xl font-bold">
             Join or Create a Chatroom
           </CardTitle>
+          <div className="text-lg">{`👋 Hello, ${sessionStorage.getItem("username")}`}</div>
         </CardHeader>
         <CardContent className="space-y-4">
           {!isCreating ? (
