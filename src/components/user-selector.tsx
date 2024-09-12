@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import ServerStatusCard from "./server-status-card";
 
 type User = {
   id: string;
@@ -23,12 +24,24 @@ export default function ChatHome() {
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
   const [newUserName, setNewUserName] = useState("");
+  const [isOnline, setIsOnline] = useState(false);
 
   const apiUrl: string = import.meta.env.VITE_API_URL;
   const navigate = useNavigate();
 
   useEffect(() => {
+    const fetchServerStatus = async () => {
+      const response = await fetch(`${apiUrl}/users`);
+      if (response.ok) {
+        setIsOnline(true);
+      } else {
+        setIsOnline(false);
+      }
+    };
+
+    fetchServerStatus();
     fetchUsers();
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -78,7 +91,7 @@ export default function ChatHome() {
       }
 
       // Update Users state after successful API call
-      fetchUsers()
+      fetchUsers();
 
       setSelectedUser(newUserName.trim());
       setIsCreating(false);
@@ -103,7 +116,7 @@ export default function ChatHome() {
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">
-            Select or Create a Chatuser
+            Select or Create a User
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -134,7 +147,7 @@ export default function ChatHome() {
           ) : (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="new-user-name">New User Name</Label>
+                <Label htmlFor="new-user-name">New Username</Label>
                 <Input
                   id="new-user-name"
                   placeholder="Enter user name"
@@ -154,6 +167,9 @@ export default function ChatHome() {
           )}
         </CardContent>
       </Card>
+      <div className="w-full flex justify-center mt-4">
+        <ServerStatusCard isOnline={isOnline} />
+      </div>
     </div>
   );
 }
